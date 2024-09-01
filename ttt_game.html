@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTT</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .cell:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.05);
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 24px;
+            color: white;
+        }
+        #reset {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #reset:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TTT</h1>
+        <div class="board" id="board"></div>
+        <div id="status"></div>
+        <button id="reset">Recommencer</button>
+    </div>
+
+    <script>
+        const board = document.getElementById('board');
+        const status = document.getElementById('status');
+        const resetButton = document.getElementById('reset');
+        let currentPlayer = 'X';
+        let gameState = ['', '', '', '', '', '', '', '', ''];
+        let gameActive = true;
+
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        function createBoard() {
+            board.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.setAttribute('data-index', i);
+                cell.addEventListener('click', handleCellClick);
+                board.appendChild(cell);
+            }
+        }
+
+        function handleCellClick(e) {
+            const clickedCell = e.target;
+            const cellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+            if (gameState[cellIndex] !== '' || !gameActive || currentPlayer !== 'X') return;
+
+            makeMove(cellIndex);
+
+            if (gameActive) {
+                setTimeout(computerMove, 500);
+            }
+        }
+
+        function makeMove(cellIndex) {
+            gameState[cellIndex] = currentPlayer;
+            document.querySelector(`[data-index="${cellIndex}"]`).textContent = currentPlayer;
+            document.querySelector(`[data-index="${cellIndex}"]`).style.color = currentPlayer === 'X' ? '#FF6B6B' : '#4ECDC4';
+
+            checkResult();
+        }
+
+        function computerMove() {
+            for (let i = 0; i < 9; i++) {
+                if (gameState[i] === '') {
+                    gameState[i] = 'O';
+                    if (checkWinner('O')) {
+                        makeMove(i);
+                        return;
+                    }
+                    gameState[i] = '';
+                }
+            }
+
+            for (let i = 0; i < 9; i++) {
+                if (gameState[i] === '') {
+                    gameState[i] = 'X';
+                    if (checkWinner('X')) {
+                        gameState[i] = 'O';
+                        makeMove(i);
+                        return;
+                    }
+                    gameState[i] = '';
+                }
+            }
+
+            if (gameState[4] === '') {
+                makeMove(4);
+                return;
+            }
+
+            const corners = [0, 2, 6, 8].filter(i => gameState[i] === '');
+            const sides = [1, 3, 5, 7].filter(i => gameState[i] === '');
+            
+            if (corners.length > 0 && Math.random() < 0.7) {
+                makeMove(corners[Math.floor(Math.random() * corners.length)]);
+            } else if (sides.length > 0) {
+                makeMove(sides[Math.floor(Math.random() * sides.length)]);
+            } else {
+                const emptyCells = gameState.reduce((acc, cell, index) => {
+                    if (cell === '') acc.push(index);
+                    return acc;
+                }, []);
+                makeMove(emptyCells[Math.floor(Math.random() * emptyCells.length)]);
+            }
+        }
+
+        function checkWinner(player) {
+            return winningConditions.some(condition => {
+                return condition.every(index => gameState[index] === player);
+            });
+        }
+
+        function checkResult() {
+            if (checkWinner(currentPlayer)) {
+                status.textContent = currentPlayer === 'X' ? 'Vous avez gagné !' : 'L\'ordinateur a gagné !';
+                gameActive = false;
+                return;
+            }
+
+            if (!gameState.includes('')) {
+                status.textContent = 'Match nul !';
+                gameActive = false;
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            status.textContent = currentPlayer === 'X' ? 'À votre tour' : 'Au tour de l\'ordinateur';
+        }
+
+        function resetGame() {
+            currentPlayer = 'X';
+            gameState = ['', '', '', '', '', '', '', '', ''];
+            gameActive = true;
+            status.textContent = 'À votre tour';
+            createBoard();
+        }
+
+        createBoard();
+        resetButton.addEventListener('click', resetGame);
+        status.textContent = 'À votre tour';
+    </script>
+</body>
+</html>
